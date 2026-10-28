@@ -96,11 +96,17 @@
     .btn-primary { background: var(--primary); color: white; }
     .btn-secondary { background: #e2e8f0; color: #475569; }
 
-    /* Table & Mobile Responsive Layout */
+    /* Table, Header Search & Sorting Styles */
     .table-container { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; text-align: left; }
-    th, td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
-    th { background: #f8fafc; color: var(--text-muted); font-weight: 600; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 0.85rem; vertical-align: top; }
+    th { background: #f8fafc; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+    
+    .th-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px; }
+    .sort-btn { background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 0.75rem; padding: 2px 4px; border-radius: 4px; }
+    .sort-btn:hover { background: #e2e8f0; color: #0f172a; }
+    .header-search { width: 100%; padding: 5px 8px; font-size: 0.75rem; border: 1px solid var(--border); border-radius: 4px; outline: none; font-weight: normal; }
+    .header-search:focus { border-color: var(--primary); }
 
     .section { display: none; }
     .section.active { display: block; }
@@ -156,7 +162,62 @@
             <table>
               <thead>
                 <tr>
-                  <th>ID</th><th>Child Name</th><th>Class</th><th>Gender</th><th>Father Name</th><th>School Name</th><th>Address</th><th>Number</th>
+                  <th>
+                    <div class="th-header">
+                      <span>ID</span>
+                      <button class="sort-btn" onclick="sortTable('ID')">▲▼</button>
+                    </div>
+                    <input type="text" class="header-search" placeholder="Search ID..." onkeyup="filterTable()">
+                  </th>
+                  <th>
+                    <div class="th-header">
+                      <span>Child Name</span>
+                      <button class="sort-btn" onclick="sortTable('Child Name')">▲▼</button>
+                    </div>
+                    <input type="text" class="header-search" placeholder="Search Name..." onkeyup="filterTable()">
+                  </th>
+                  <th>
+                    <div class="th-header">
+                      <span>Class</span>
+                      <button class="sort-btn" onclick="sortTable('Class')">▲▼</button>
+                    </div>
+                    <input type="text" class="header-search" placeholder="Search Class..." onkeyup="filterTable()">
+                  </th>
+                  <th>
+                    <div class="th-header">
+                      <span>Gender</span>
+                      <button class="sort-btn" onclick="sortTable('Gender')">▲▼</button>
+                    </div>
+                    <input type="text" class="header-search" placeholder="Search Gender..." onkeyup="filterTable()">
+                  </th>
+                  <th>
+                    <div class="th-header">
+                      <span>Father Name</span>
+                      <button class="sort-btn" onclick="sortTable('Father Name')">▲▼</button>
+                    </div>
+                    <input type="text" class="header-search" placeholder="Search Father..." onkeyup="filterTable()">
+                  </th>
+                  <th>
+                    <div class="th-header">
+                      <span>School Name</span>
+                      <button class="sort-btn" onclick="sortTable('School Name')">▲▼</button>
+                    </div>
+                    <input type="text" class="header-search" placeholder="Search School..." onkeyup="filterTable()">
+                  </th>
+                  <th>
+                    <div class="th-header">
+                      <span>Address</span>
+                      <button class="sort-btn" onclick="sortTable('Address')">▲▼</button>
+                    </div>
+                    <input type="text" class="header-search" placeholder="Search Address..." onkeyup="filterTable()">
+                  </th>
+                  <th>
+                    <div class="th-header">
+                      <span>Number</span>
+                      <button class="sort-btn" onclick="sortTable('Number')">▲▼</button>
+                    </div>
+                    <input type="text" class="header-search" placeholder="Search Number..." onkeyup="filterTable()">
+                  </th>
                 </tr>
               </thead>
               <tbody id="dataTable">
@@ -221,6 +282,9 @@
 
 <script>
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbySy1MclTw4PCfXOBJxTBtBDsfESmqAsAZF2Q2NQmSlpTWhSwPrX0IOYYwCWpQYUMs/exec";
+  let masterData = [];
+  let currentSortKey = null;
+  let currentSortAsc = true;
 
   function toggleSidebar() {
     document.getElementById('sidebar').classList.toggle('open');
@@ -254,27 +318,73 @@
       try {
         const res = await fetch(SCRIPT_URL);
         const data = await res.json();
-        const tbody = document.getElementById('dataTable');
-        if (data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No records available.</td></tr>';
-          return;
-        }
-        tbody.innerHTML = data.map(r => `
-          <tr>
-            <td><strong>${r.ID || 'N/A'}</strong></td>
-            <td>${r["Child Name"] || ''}</td>
-            <td>${r.Class || ''}</td>
-            <td>${r.Gender || ''}</td>
-            <td>${r["Father Name"] || ''}</td>
-            <td>${r["School Name"] || ''}</td>
-            <td>${r.Address || ''}</td>
-            <td>${r.Number || ''}</td>
-          </tr>
-        `).join('');
+        masterData = data;
+        renderData(masterData);
       } catch (err) {
         console.log("Error fetching data", err);
       }
     }
+  }
+
+  // Render Table Rows
+  function renderData(dataList) {
+    const tbody = document.getElementById('dataTable');
+    if (!dataList || dataList.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No records available.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = dataList.map(r => `
+      <tr>
+        <td><strong>${r.ID || 'N/A'}</strong></td>
+        <td>${r["Child Name"] || ''}</td>
+        <td>${r.Class || ''}</td>
+        <td>${r.Gender || ''}</td>
+        <td>${r["Father Name"] || ''}</td>
+        <td>${r["School Name"] || ''}</td>
+        <td>${r.Address || ''}</td>
+        <td>${r.Number || ''}</td>
+      </tr>
+    `).join('');
+  }
+
+  // Filter Table Data per Header
+  function filterTable() {
+    const inputs = document.querySelectorAll('.header-search');
+    let filtered = masterData.filter(row => {
+      let matches = true;
+      const keys = ['ID', 'Child Name', 'Class', 'Gender', 'Father Name', 'School Name', 'Address', 'Number'];
+      inputs.forEach((input, index) => {
+        const val = input.value.toLowerCase().trim();
+        if (val) {
+          const fieldVal = String(row[keys[index]] || '').toLowerCase();
+          if (!fieldVal.includes(val)) {
+            matches = false;
+          }
+        }
+      });
+      return matches;
+    });
+    renderData(filtered);
+  }
+
+  // Sort Table Data (A to Z / Z to A)
+  function sortTable(key) {
+    if (currentSortKey === key) {
+      currentSortAsc = !currentSortAsc;
+    } else {
+      currentSortKey = key;
+      currentSortAsc = true;
+    }
+
+    masterData.sort((a, b) => {
+      let valA = String(a[key] || '').toLowerCase();
+      let valB = String(b[key] || '').toLowerCase();
+      if (valA < valB) return currentSortAsc ? -1 : 1;
+      if (valA > valB) return currentSortAsc ? 1 : -1;
+      return 0;
+    });
+
+    filterTable();
   }
 
   // Handle Student Form Submit
